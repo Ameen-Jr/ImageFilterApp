@@ -1,65 +1,187 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import FilterPanel, {
+  BrightnessContrastParams,
+  FilterName,
+} from "../components/FilterPanel";
+import ImageUpload from "../components/ImageUpload";
+import {
+  downloadCanvas,
+  getImageData,
+  loadImageToCanvas,
+  putImageData,
+} from "../lib/canvasUtils";
+import {
+  applyBarrel,
+  applyBrightnessContrast,
+  applyCrossProcess,
+  applyFade,
+  applyGrayscale,
+  applyInvert,
+  applyRipple,
+  applySepia,
+  applySwirl,
+} from "../lib/filters";
 
 export default function Home() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const originalRef = useRef<ImageData | null>(null);
+
+  const [activeFilter, setActiveFilter] = useState<FilterName>("original");
+  const [bcParams, setBcParams] = useState<BrightnessContrastParams>({
+    brightness: 0,
+    contrast: 0,
+  });
+
+  function applyFilter(name: FilterName, bc = bcParams) {
+    const canvas = canvasRef.current;
+    const original = originalRef.current;
+    if (!canvas || !original) return;
+
+    let result: ImageData;
+    switch (name) {
+      case "grayscale":
+        result = applyGrayscale(original);
+        break;
+      case "sepia":
+        result = applySepia(original);
+        break;
+      case "invert":
+        result = applyInvert(original);
+        break;
+      case "brightness-contrast":
+        result = applyBrightnessContrast(original, bc.brightness, bc.contrast);
+        break;
+      case "fade":
+        result = applyFade(original);
+        break;
+      case "cross-process":
+        result = applyCrossProcess(original);
+        break;
+      case "barrel":
+        result = applyBarrel(original);
+        break;
+      case "ripple":
+        result = applyRipple(original);
+        break;
+      case "swirl":
+        result = applySwirl(original);
+        break;
+      default:
+        // original — reset to source
+        result = new ImageData(
+          new Uint8ClampedArray(original.data),
+          original.width,
+          original.height
+        );
+    }
+    putImageData(canvas, result);
+  }
+
+  const loadImage = useCallback(async (src: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    await loadImageToCanvas(src, canvas);
+    originalRef.current = getImageData(canvas);
+    setActiveFilter("original");
+    setBcParams({ brightness: 0, contrast: 0 });
+  }, []);
+
+  // Pre-load sample image on mount
+  useEffect(() => {
+    loadImage("/sample.png");
+  }, [loadImage]);
+
+  function handleFilterSelect(name: FilterName) {
+    setActiveFilter(name);
+    applyFilter(name);
+  }
+
+  function handleBcChange(params: BrightnessContrastParams) {
+    setBcParams(params);
+    applyFilter("brightness-contrast", params);
+  }
+
+  function handleDownload() {
+    const canvas = canvasRef.current;
+    if (canvas) downloadCanvas(canvas, "filtered-image.png");
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        backgroundColor: "#0a0a0a",
+        overflow: "hidden",
+      }}
+    >
+      <FilterPanel
+        active={activeFilter}
+        onSelect={handleFilterSelect}
+        bcParams={bcParams}
+        onBcChange={handleBcChange}
+        onDownload={handleDownload}
+      />
+
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: "14px 24px",
+            borderBottom: "1px solid #2d2d2d",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
+          <h1
+            style={{
+              color: "#ffffff",
+              fontSize: "1rem",
+              fontWeight: 600,
+              margin: 0,
+            }}
+          >
+            Image Filter App
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+          <div style={{ width: "240px" }}>
+            <ImageUpload onImageLoad={loadImage} />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Canvas area */}
+        <div
+          style={{
+            flex: 1,
+            overflow: "auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+              borderRadius: "8px",
+              boxShadow: "0 4px 32px rgba(0,0,0,0.6)",
+            }}
+          />
         </div>
-      </main>
+      </div>
     </div>
   );
 }
