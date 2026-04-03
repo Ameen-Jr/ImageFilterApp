@@ -43,18 +43,57 @@ export default function ImageUpload({ onImageLoad }: Props) {
       onDragLeave={() => setDragOver(false)}
       onClick={() => inputRef.current?.click()}
       style={{
-        border: `2px dashed ${dragOver ? "#a78bfa" : "#2d2d2d"}`,
-        borderRadius: "8px",
-        padding: "16px",
-        textAlign: "center",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        padding: "9px 16px",
+        borderRadius: "10px",
+        border: `1.5px dashed ${dragOver ? "#a78bfa" : "#2a2a3a"}`,
+        background: dragOver
+          ? "rgba(124,58,237,0.12)"
+          : "rgba(255,255,255,0.03)",
         cursor: "pointer",
-        backgroundColor: dragOver ? "#2a1f4a" : "#1a1a1a",
-        transition: "all 0.15s ease",
+        transition: "all 0.2s ease",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseEnter={(e) => {
+        if (!dragOver) {
+          (e.currentTarget as HTMLDivElement).style.borderColor = "#4b3d6e";
+          (e.currentTarget as HTMLDivElement).style.background = "rgba(124,58,237,0.06)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!dragOver) {
+          (e.currentTarget as HTMLDivElement).style.borderColor = "#2a2a3a";
+          (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.03)";
+        }
       }}
     >
-      <p style={{ color: "#9ca3af", margin: 0, fontSize: "0.875rem" }}>
-        Drop image here or click to browse
-      </p>
+      <div style={{
+        width: "30px", height: "30px",
+        borderRadius: "8px",
+        background: dragOver
+          ? "rgba(124,58,237,0.3)"
+          : "rgba(124,58,237,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+        transition: "background 0.2s",
+      }}>
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+          <path d="M10 14V4M6 8l4-4 4 4" stroke="#a78bfa" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 15v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"
+            stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div>
+        <div style={{ color: "#d1d5db", fontSize: "0.8rem", fontWeight: 500 }}>
+          Upload Image
+        </div>
+        <div style={{ color: "#4b5563", fontSize: "0.7rem" }}>
+          Drop or click to browse
+        </div>
+      </div>
       <input
         ref={inputRef}
         type="file"
